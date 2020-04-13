@@ -4,12 +4,10 @@ import com.legyver.core.exception.CoreException;
 import org.apache.commons.jexl3.*;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,8 +32,8 @@ public class GraphRunnerJexlExpressionTest {
 		Properties buildProperties = new Properties();
 		buildProperties.load(GraphRunnerJexlExpressionTest.class.getResourceAsStream("build.properties"));
 
-		Map<String, Object> map = new HashMap<>();
-		evaluateGraph(map, buildProperties);
+		Map<String, Object> map = PropertyMap.of(buildProperties);
+		evaluateGraph(map);
 		assertExpectedDateProperties(map);
 	}
 
@@ -72,8 +70,8 @@ s	 */
 		Properties copyrightProperties = new Properties();
 		copyrightProperties.load(GraphRunnerJexlExpressionTest.class.getResourceAsStream("copyright.properties"));
 
-		Map<String, Object> map = new HashMap<>();
-		evaluateGraph(map, buildProperties, copyrightProperties);
+		Map<String, Object> map = PropertyMap.of(buildProperties, copyrightProperties);
+		evaluateGraph(map);
 		assertExpectedDateProperties(map);
 		assertExpectedVersionProperties(map);
 		assertExpectedCopyrightProperties(map);
@@ -97,17 +95,16 @@ s	 */
 		assertThat(map.get("build.message.format"), is("`Build ${build.version}, built on ${build.date}`"));
 	}
 
-	private void evaluateGraph(Map<String, Object> map, Properties...properties) throws CoreException {
+	private void evaluateGraph(Map<String, Object> map) throws CoreException {
 		Pattern jexlVar = Pattern.compile(JEXL_VARIABLE);
 
 		VariableExtractionOptions variableExtractionOptions = new VariableExtractionOptions(jexlVar, 1);
 		VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"), TransformationOperation.upToLastIndexOf(".format"));
 		ContextGraphFactory factory = new ContextGraphFactory(variableExtractionOptions, variableTransformationRule);
-		ContextGraph contextGraph = factory.make(PropertyMap.of(properties));
+		ContextGraph contextGraph = factory.make(map);
 
 		JexlEngine jexl = new JexlBuilder().create();
 		JexlContext context = new MapContext(map);
-		Stream.of(properties).forEach(properties1 -> setPropertiesOnContext(context, properties1));
 
 		GraphRunner runner = new GraphRunner(map);
 
@@ -130,12 +127,5 @@ s	 */
 			}
 		});
 		runner.runGraph(contextGraph);
-	}
-
-	private void setPropertiesOnContext(JexlContext context, Properties properties) {
-		for (String key : properties.stringPropertyNames()) {
-			String value = (String) properties.get(key);
-			context.set(key, value);
-		}
 	}
 }

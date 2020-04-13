@@ -78,14 +78,14 @@ buildProperties.load(MyApplication.class.getResourceAsStream("build.properties")
 Properties copyrightProperties = new Properties();
 copyrightProperties.load(MyApplication.class.getResourceAsStream("copyright.properties"));
 
-Map<String, Object> map = new HashMap<>();
 //how to get the extract the variable for evaluation
 VariableExtractionOptions variableExtractionOptions = new VariableExtractionOptions(jexlVar, 1);
 //any aliasing that may occur (for instance, to prevent overwriting the format)
-VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"), TransformationOperation.upToLastIndexOf(".format"));
+VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"), 
+    TransformationOperation.upToLastIndexOf(".format"));
 
 ContextGraphFactory factory = new ContextGraphFactory(variableExtractionOptions, variableTransformationRule);
-ContextGraph contextGraph = factory.make(buildProperties, copyrightProperties);
+ContextGraph contextGraph = factory.make(PropertyMap.of(buildProperties, copyrightProperties));
 ...
 GraphRunner runner = new GraphRunner(map);
 runner.setCommand((nodeName, currentValue) -> {
