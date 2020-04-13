@@ -103,7 +103,7 @@ s	 */
 		VariableExtractionOptions variableExtractionOptions = new VariableExtractionOptions(jexlVar, 1);
 		VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"), TransformationOperation.upToLastIndexOf(".format"));
 		ContextGraphFactory factory = new ContextGraphFactory(variableExtractionOptions, variableTransformationRule);
-		ContextGraph contextGraph = factory.make(properties);
+		ContextGraph contextGraph = factory.make(PropertyMap.of(properties));
 
 		JexlEngine jexl = new JexlBuilder().create();
 		JexlContext context = new MapContext(map);

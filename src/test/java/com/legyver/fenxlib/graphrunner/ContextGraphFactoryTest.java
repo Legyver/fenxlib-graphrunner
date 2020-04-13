@@ -41,7 +41,7 @@ public class ContextGraphFactoryTest {
 		p.setProperty("build.date.year","2020");
 
 		ContextGraphFactory factory = new ContextGraphFactory(Pattern.compile(JEXL_VARIABLE), 1);
-		ContextGraph contextGraph = factory.make(p);
+		ContextGraph contextGraph = factory.make(PropertyMap.of(p));
 		assertThat(contextGraph.graph.size(), is(3));
 		assertThat(contextGraph.graph.keySet(), containsInAnyOrder("build.date.day", "build.date.month", "build.date.year"));
 		for (String key : contextGraph.graph.keySet()) {
@@ -72,13 +72,8 @@ public class ContextGraphFactoryTest {
 		VariableTransformationRule transformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"),
 				TransformationOperation.upToLastIndexOf(".format"));
 		ContextGraphFactory factory = new ContextGraphFactory(extractionOptions, transformationRule);
-		ContextGraph contextGraph = factory.make(p);
-		assertThat(contextGraph.graph.keySet(), containsInAnyOrder(
-				"build.date.day", "build.date.month", "build.date.year",//build date data
-				"major.version", "minor.version", "patch.number", "build.number",//version data
-				"build.version", "build.date"));//output of evaluation of respective .format nodes
+		ContextGraph contextGraph = factory.make(PropertyMap.of(p));
 		assertNode(contextGraph, 0);
-
 	}
 
 	private void assertNode(ContextGraph contextGraph, int level) {
@@ -118,6 +113,11 @@ public class ContextGraphFactoryTest {
 					assertThat(level, is(level));
 					ContextGraph formatNode = contextGraph.graph.get(key);
 					assertThat(formatNode.graph.keySet(), containsInAnyOrder("build.message.format"));
+					break;
+				case "build.message.format":
+					assertThat(level, is(level));
+					ContextGraph messageFormatNode = contextGraph.graph.get(key);
+					assertThat(messageFormatNode.graph.keySet(), containsInAnyOrder("build.message"));
 					break;
 				default:
 					Assert.fail("Unexpected node: " + key);

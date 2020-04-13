@@ -3,14 +3,14 @@ package com.legyver.fenxlib.graphrunner;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class ContextGraphFactory {
 
 	private final VariableExtractionOptions variableExtractionOptions;
 	private final VariableTransformationRule variableTransformationRule;
 
-	public ContextGraphFactory(VariableExtractionOptions variableExtractionOptions, VariableTransformationRule variableTransformationRule) {
+	public ContextGraphFactory(VariableExtractionOptions variableExtractionOptions,
+							   VariableTransformationRule variableTransformationRule) {
 		this.variableExtractionOptions = variableExtractionOptions;
 		this.variableTransformationRule = variableTransformationRule;
 	}
@@ -39,49 +39,39 @@ public class ContextGraphFactory {
 	 *   build.version.format=`${major.version}.${minor.version}.${patch.number}.${build.number}`
 	 *   build.message.format=`Build ${build.version}, built on ${build.date}`
 	  Note to make build.version resolve as the outcome of build.version.format, we need to use specify this in the {@link variableTransformationRule}
-	 * @param properties
+	 * @param propertyMap
 	 * @return
 	 */
-	public ContextGraph make(Properties...properties) {
+	public ContextGraph make(Map<String, ? extends Object> propertyMap) {
 		ContextGraph contextGraph = new ContextGraph();
-		if (properties != null) {
-			List<ReferenceProperty> propertiesToResolve = new ArrayList<>();
-			Stream.of(properties).forEach(p -> addResolvingProperties(p, propertiesToResolve));
-			List<DirectionalProperty> additionalProperties = new ArrayList<>();
 
-			List<DirectionalProperty> directionalProperties = link(propertiesToResolve);
-			if (variableTransformationRule != null) {
-				propertiesToResolve.stream()
-						.filter(referenceProperty -> variableTransformationRule.matches(referenceProperty.key))
-						.forEach(referenceProperty -> {
-							//ex: Since the result of the operation on build.date.format is set as build.date
-							// build.date.format must be resolved first before any operation involving build.date can be executed.
-							// in this example, transformed would be build.date and referenceProperty.key would be build.date.format
-							String transformed = variableTransformationRule.transform(referenceProperty.key);
-							//so the dependency is transformed depends on referenceProperty.key
-							DirectionalProperty directionalProperty = new DirectionalProperty(transformed);
-							directionalProperty.depends.add(referenceProperty.key);
-							additionalProperties.add(directionalProperty);
-						});
-			}
-			//doing this to avoid modifying a collection mid-stream and incurring a ConcurrentModificationException
-			directionalProperties.addAll(additionalProperties);
-
-			for (DirectionalProperty directionalProperty : directionalProperties) {
-				for (String predecessor : directionalProperty.depends) {
-					contextGraph.accept(directionalProperty.key, predecessor);
-				}
+		List<DirectionalProperty> directionalProperties = link(propertyMap.entrySet());
+		for (DirectionalProperty directionalProperty : directionalProperties) {
+			for (String predecessor : directionalProperty.depends) {
+				contextGraph.accept(directionalProperty.key, predecessor);
 			}
 		}
 		return contextGraph;
 	}
 
-	private List<DirectionalProperty> link(List<ReferenceProperty> propertiesToResolve) {
+	private List<DirectionalProperty> link(Set<? extends Map.Entry<String, ?>> propertiesToResolve) {
 		List<DirectionalProperty> result = new ArrayList<>();
-		for (ReferenceProperty property : propertiesToResolve) {
-			DirectionalProperty directionalProperty = new DirectionalProperty(property.key);
+		for (Map.Entry<String, ? extends Object> property : propertiesToResolve) {
+			DirectionalProperty directionalProperty = new DirectionalProperty(property.getKey());
 			result.add(directionalProperty);
-			String propertyValue = property.value;
+			String propertyValue = String.valueOf(property.getValue());
+
+			//ex: Since the result of the operation on build.date.format is set as build.date
+			// build.date.format must be resolved first before any operation involving build.date can be executed.
+			if (variableTransformationRule != null && variableTransformationRule.matches(property.getKey())) {
+				// in this example, transformed would be build.date and referenceProperty.key would be build.date.format
+				String transformed = variableTransformationRule.transform(property.getKey());
+				//so the dependency is transformed depends on referenceProperty.key
+				DirectionalProperty alias = new DirectionalProperty(transformed);
+				alias.depends.add(property.getKey());
+				result.add(alias);
+			}
+
 			Matcher m = variableExtractionOptions.getTokenizerPattern().matcher(propertyValue);
 			while (m.find()) {
 				String group = m.group(variableExtractionOptions.getGroup());
@@ -89,22 +79,6 @@ public class ContextGraphFactory {
 			}
 		}
 		return result;
-	}
-
-	private void addResolvingProperties(Properties properties, List<ReferenceProperty> propertiesToResolve) {
-		properties.stringPropertyNames().stream()
-				.map(s -> new ReferenceProperty(s, properties.getProperty(s)))
-				.forEach(referenceProperty -> propertiesToResolve.add(referenceProperty));
-	}
-
-	private class ReferenceProperty {
-		private final String key;
-		private final String value;
-
-		private ReferenceProperty(String key, String value) {
-			this.key = key;
-			this.value = value;
-		}
 	}
 
 	private class DirectionalProperty {
