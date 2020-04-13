@@ -24,7 +24,7 @@ gradlew install
 ```
 The last command installs the library into mavenLocal
 
-### Importing fenxlib-widgets
+### Importing fenxlib-graphrunner
  ```build.gradle
 repositories {
     mavenLocal()
