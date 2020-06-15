@@ -81,7 +81,7 @@ copyrightProperties.load(MyApplication.class.getResourceAsStream("copyright.prop
 //how to get the extract the variable for evaluation
 VariableExtractionOptions variableExtractionOptions = new VariableExtractionOptions(jexlVar, 1);
 //any aliasing that may occur (for instance, to prevent overwriting the format)
-VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"), 
+VariableTransformationRule variableTransformationRule = new VariableTransformationRule(Pattern.compile("\\.format$"),
     TransformationOperation.upToLastIndexOf(".format"));
 
 ContextGraphFactory factory = new ContextGraphFactory(variableExtractionOptions, variableTransformationRule);
@@ -104,3 +104,14 @@ See GraphRunnerJexlExpressionTest for more information.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/Legyver/fenxlib-graphrunner/blob/master/LICENSE)
 
+## Versioning
+Release.Breaking.Feature.Fix
+- Release: Used for major milestone releases.
+- Breaking: Used when the change breaks backward compatibility.
+- Feature: Used when introducing features that do not break backward compatability.
+- Fix: Used for small bug fixes
+
+All new versions should trigger new versions of all fenxlib-* libraries to keep dependency management simple.
+
+## Releases
+* [Release Notes](https://github.com/Legyver/fenxlib-graphrunner/blob/master/RELEASE.MD)
